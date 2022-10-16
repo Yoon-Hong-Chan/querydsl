@@ -12,5 +12,5 @@ spring:
 
 logging:
   level:
-    "[org.hibernate]" : debug
+    "[org.hibernate]" : off
 
