@@ -4,14 +4,17 @@ import static org.springframework.util.StringUtils.hasText;
 import static study.querydsl.entity.QMember.member;
 import static study.querydsl.entity.QTeam.team;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import javax.persistence.EntityManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
-import study.querydsl.entity.Member;
 
 public class MemberRepositoryImpl implements MemberRepositoryCustom{
 
@@ -40,6 +43,83 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                         ,ageLoe(condition.getAgeLoe())
                 )
                 .fetch();
+    }
+
+    @Override
+    public Page<MemberTeamDto> searchPageSimple(MemberSearchCondition condition, Pageable pageable) {
+        QueryResults<MemberTeamDto> result = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id.as("memberID"),
+                        member.username,
+                        member.age,
+                        team.id.as("teamId"),
+                        team.name.as("teamName")
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername())
+                        , teamNameEq(condition.getTeamName())
+                        , ageGoe(condition.getAgeGoe())
+                        , ageLoe(condition.getAgeLoe())
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetchResults();
+        List<MemberTeamDto> content = result.getResults();
+        long total = result.getTotal();
+        return new PageImpl<>(content,pageable,total);
+    }
+
+    @Override
+    public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
+        List<MemberTeamDto> content = getMemberTeamDtos(condition, pageable);
+        long total = getTotal(condition);
+
+        return new PageImpl<>(content,pageable,total);
+    }
+
+    private long getTotal(MemberSearchCondition condition) {
+        long total = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id.as("memberID"),
+                        member.username,
+                        member.age,
+                        team.id.as("teamId"),
+                        team.name.as("teamName")
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername())
+                        , teamNameEq(condition.getTeamName())
+                        , ageGoe(condition.getAgeGoe())
+                        , ageLoe(condition.getAgeLoe())
+                ).fetchCount();
+        return total;
+    }
+
+    private List<MemberTeamDto> getMemberTeamDtos(MemberSearchCondition condition, Pageable pageable) {
+        List<MemberTeamDto> content = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id.as("memberID"),
+                        member.username,
+                        member.age,
+                        team.id.as("teamId"),
+                        team.name.as("teamName")
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername())
+                        , teamNameEq(condition.getTeamName())
+                        , ageGoe(condition.getAgeGoe())
+                        , ageLoe(condition.getAgeLoe())
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+        return content;
     }
 
     private BooleanExpression ageLoe(Integer ageLoe) {
