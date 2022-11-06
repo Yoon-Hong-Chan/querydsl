@@ -1,7 +1,11 @@
 package study.querydsl;
 
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import javax.persistence.EntityManager;
+import javax.swing.text.html.parser.Entity;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class QuerydslApplication {
@@ -10,4 +14,8 @@ public class QuerydslApplication {
 		SpringApplication.run(QuerydslApplication.class, args);
 	}
 
+	@Bean
+	JPAQueryFactory jpaQueryFactory(EntityManager em){
+		return new JPAQueryFactory(em);
+	}
 }
