@@ -6,12 +6,14 @@ import static study.querydsl.entity.QTeam.team;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import javax.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
@@ -74,9 +76,25 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
     @Override
     public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
         List<MemberTeamDto> content = getMemberTeamDtos(condition, pageable);
-        long total = getTotal(condition);
 
-        return new PageImpl<>(content,pageable,total);
+        JPAQuery<MemberTeamDto> total = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id.as("memberID"),
+                        member.username,
+                        member.age,
+                        team.id.as("teamId"),
+                        team.name.as("teamName")
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername())
+                        , teamNameEq(condition.getTeamName())
+                        , ageGoe(condition.getAgeGoe())
+                        , ageLoe(condition.getAgeLoe())
+                );
+
+        return PageableExecutionUtils.getPage(content,pageable,total::fetchCount);
     }
 
     private long getTotal(MemberSearchCondition condition) {
